@@ -1,21 +1,18 @@
-name: CI/CD — Industrial Energy API
+name: CI/CD — Industrial Digital Twin
 
 # ── Triggers ──────────────────────────────────────────────────────
 on:
   push:
     branches: [main]
-    paths:
-      - "capstone5_devops/**"
-      - "models/**"
   pull_request:
     branches: [main]
 
 # ── Jobs ──────────────────────────────────────────────────────────
 jobs:
 
-  # ── Job 1: Lint + Unit Tests ────────────────────────────────────
-  test:
-    name: Lint & Test
+  # ── Job 1: Lint + Unit Tests (FastAPI) ──────────────────────────
+  test-backend:
+    name: Backend Lint & Test
     runs-on: ubuntu-latest
 
     steps:
@@ -40,14 +37,12 @@ jobs:
         run: |
           cd capstone5_devops
           pytest tests/ -v --tb=short
-        # Tests are in capstone5_devops/tests/test_api.py
 
-  # ── Job 2: Build Docker Image (only on push to main) ───────────
+  # ── Job 2: Build & Validate Images ──────────────────────────────
   build:
-    name: Build & Push Docker Image
-    needs: test
+    name: Build & Validate Images
+    needs: test-backend
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
       - name: Checkout code
@@ -56,78 +51,58 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and push
+      # Build FastAPI (Always validate, push only if secrets exist)
+      - name: Build FastAPI Backend
         uses: docker/build-push-action@v5
         with:
-          context:   capstone5_devops
+          context:   .
           file:      capstone5_devops/Dockerfile
-          push:      true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/industrial-energy-api:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/industrial-energy-api:${{ github.sha }}
+          push:      false
+          tags:      industrial-energy-api:latest
           cache-from: type=gha
           cache-to:   type=gha,mode=max
 
-  # ── Job 3: Deploy to server (SSH) ──────────────────────────────
-  deploy:
-    name: Deploy via SSH
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
-    steps:
-      - name: Deploy to production server
-        uses: appleboy/ssh-action@v1.0.3
+      # Build Node Server (Validation only)
+      - name: Build Node Gateway
+        uses: docker/build-push-action@v5
         with:
-          host:     ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key:      ${{ secrets.DEPLOY_SSH_KEY }}
-          port:     ${{ secrets.DEPLOY_PORT || 22 }}
-          script: |
-            set -e
-            echo "=== Deploying Industrial Energy API ==="
-            echo "SHA: ${{ github.sha }}"
+          context:   ./server
+          file:      server/Dockerfile
+          push:      false
+          tags:      industrial-node-server:latest
+          cache-from: type=gha
+          cache-to:   type=gha,mode=max
 
-            # Pull new image
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/industrial-energy-api:latest
+      # Build React Client (Validation only)
+      - name: Build React Dashboard
+        uses: docker/build-push-action@v5
+        with:
+          context:   ./client
+          file:      client/Dockerfile
+          push:      false
+          tags:      industrial-dashboard:latest
+          cache-from: type=gha
+          cache-to:   type=gha,mode=max
 
-            # Graceful restart (zero-downtime if using multiple replicas)
-            cd /opt/industrial-energy
-            docker-compose pull
-            docker-compose up -d --no-build
-
-            # Wait for healthcheck to pass
-            echo "Waiting for API to be healthy..."
-            for i in $(seq 1 12); do
-              STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/health)
-              if [ "$STATUS" = "200" ]; then
-                echo "✅ API healthy after ${i}×5s"
-                break
-              fi
-              echo "  Attempt $i — status $STATUS"
-              sleep 5
-            done
-
-            # Show running containers
-            docker ps --filter name=energy
-
-            echo "=== Deploy complete at $(date) ==="
+  # ── Job 3: Deploy (DISABLED - Site not hosted) ──────────────────
+  # deploy:
+  #   name: Deploy via SSH
+  #   needs: build
+  #   runs-on: ubuntu-latest
+  #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  #   steps:
+  #     - name: Deploy to production server
+  #       ... (Skipping as per user request: site not hosted)
 
   # ── Job 4: Alert on Failure ────────────────────────────────────
   notify-failure:
     name: Notify on Failure
-    needs: [test, build, deploy]
+    needs: [test-backend, build]
     runs-on: ubuntu-latest
     if: failure()
 
     steps:
-      - name: Send Slack alert on pipeline failure
+      - name: Send Slack alert
         if: env.SLACK_WEBHOOK != ''
         env:
           SLACK_WEBHOOK: ${{ secrets.ALERT_WEBHOOK_URL }}
@@ -135,5 +110,5 @@ jobs:
           curl -X POST "$SLACK_WEBHOOK" \
             -H "Content-Type: application/json" \
             -d '{
-              "text": "❌ *CI/CD Pipeline Failed*\nRepo: ${{ github.repository }}\nBranch: ${{ github.ref_name }}\nCommit: ${{ github.sha }}\nSee: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              "text": "❌ *CI Pipeline Failed*\nRepo: ${{ github.repository }}\nSee: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             }'
