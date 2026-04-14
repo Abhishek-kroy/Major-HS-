@@ -1,0 +1,59 @@
+services:
+  energy-api:
+    build:
+      context: .
+      dockerfile: capstone5_devops/Dockerfile
+    image: industrial-energy-api:latest
+    container_name: energy-anomaly-api
+    ports:
+      - "8000:8000"
+    environment:
+      - TFLITE_PATH=models/anomaly_detector.tflite
+      - SCALER_PATH=models/scaler.pkl
+      - THRESH_PATH=models/threshold.txt
+      - SPIKE_FACTOR=1.5
+      - LOG_PATH=capstone1_tinyml/anomaly_log.csv
+      - ALERT_WEBHOOK_URL=${ALERT_WEBHOOK_URL:-}
+    volumes:
+      - ./capstone1_tinyml:/app/capstone1_tinyml:rw
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  node-server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    image: industrial-node-server:latest
+    container_name: node-backend
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - FASTAPI_URL=http://energy-api:8000
+    depends_on:
+      energy-api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    image: industrial-dashboard:latest
+    container_name: react-dashboard
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_HOST=http://node-server:3001
+    depends_on:
+      - node-server
+    restart: unless-stopped
+
+networks:
+  default:
+    name: industrial-twin-network

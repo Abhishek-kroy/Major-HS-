@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc g++ curl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY capstone5_devops/requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 
@@ -21,7 +21,7 @@ WORKDIR /app
 COPY --from=builder /install /usr/local
 
 # Copy app source
-COPY app/main.py ./main.py
+COPY capstone5_devops/app/main.py ./main.py
 
 # Copy trained model artifacts (built by Capstone 1)
 COPY models/ ./models/
