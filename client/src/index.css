@@ -1,0 +1,92 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+/* Latest Tailwind v4 Import */
+@import "tailwindcss";
+
+@theme {
+  --color-background: #0a0c10;
+  --color-surface: #0f1318;
+  --color-border: #1e2530;
+  --color-primary: #00d4ff;
+  --color-danger: #ff3b3b;
+  --color-success: #00e676;
+  --color-warning: #ffab00;
+  --color-grid: #12161d;
+  
+  --font-mono: "JetBrains Mono", monospace;
+  --font-sans: "IBM Plex Sans", sans-serif;
+}
+
+@layer base {
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--color-background);
+    color: white;
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+  }
+}
+
+/* Scada Grid Background */
+.scada-grid {
+  background-size: 40px 40px;
+  background-image:
+    linear-gradient(to right, var(--color-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-grid) 1px, transparent 1px);
+}
+
+/* Scanline Effect */
+.scanline {
+  width: 100%;
+  height: 100px;
+  z-index: 10;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0) 0%, rgba(255, 255, 255, 0.02) 50%, rgba(0, 0, 0, 0) 100%);
+  opacity: 0.1;
+  position: absolute;
+  bottom: 100%;
+  animation: scanline 6s linear infinite;
+}
+
+@keyframes scanline {
+  0% { bottom: 100%; }
+  100% { bottom: -100px; }
+}
+
+/* Pulse animation for anomaly */
+@keyframes anomaly-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 59, 59, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(255, 59, 59, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 59, 59, 0); }
+}
+
+.animate-anomaly {
+  animation: anomaly-pulse 1.5s infinite;
+}
+
+/* Radial Shockwave */
+.shockwave {
+  position: absolute;
+  border: 2px solid var(--color-danger);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: shockwave-expand 0.6s ease-out forwards;
+}
+
+@keyframes shockwave-expand {
+  0% { width: 0; height: 0; opacity: 1; transform: translate(-50%, -50%); }
+  100% { width: 300px; height: 300px; opacity: 0; transform: translate(-50%, -50%); }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--color-surface);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}

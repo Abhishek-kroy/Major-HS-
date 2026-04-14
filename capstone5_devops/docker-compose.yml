@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+  energy-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: industrial-energy-api:latest
+    container_name: energy-anomaly-api
+    ports:
+      - "8000:8000"
+    environment:
+      # ── Model paths (inside container) ────────────────────────
+      - TFLITE_PATH=models/anomaly_detector.tflite
+      - SCALER_PATH=models/scaler.pkl
+      - THRESH_PATH=models/threshold.txt
+      # ── Alerting ───────────────────────────────────────────────
+      # Set this to your real Slack webhook URL to enable alerts:
+      # - ALERT_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/HOOK/URL
+      - ALERT_WEBHOOK_URL=${ALERT_WEBHOOK_URL:-}
+      - SPIKE_FACTOR=${SPIKE_FACTOR:-1.5}
+      # ── Logging ────────────────────────────────────────────────
+      - LOG_PATH=capstone1_tinyml/anomaly_log.csv
+    volumes:
+      # Mount models from host so you can update without rebuilding
+      - ../models:/app/models:ro
+      # Mount log dir as read-write so log persists outside container
+      - ../capstone1_tinyml:/app/capstone1_tinyml:rw
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+# Usage:
+#   docker-compose up --build          ← build + start
+#   docker-compose up -d               ← start in background
+#   docker-compose logs -f energy-api  ← tail logs
+#   docker-compose down                ← stop
