@@ -21,21 +21,33 @@ class WSProxy {
       try {
         const payload = JSON.parse(data);
         
-        // Store readings if present (FastAPI might send it or we get it from /predict proxy)
+        // Store readings if present
         if (payload.readings && payload.machine_id !== undefined) {
           this.machineBuffers[payload.machine_id] = payload.readings;
           this.io.emit('data_point', {
             machine_id: payload.machine_id,
-            kwh: payload.kwh,
-            recon_error: payload.recon_error,
-            is_anomaly: payload.is_anomaly,
+            kwh: payload.kwh || payload.readings[payload.readings.length - 1],
+            recon_error: payload.recon_error || payload.error,
+            is_anomaly: payload.is_anomaly || payload.type === 'ANOMALY_ALARM',
             timestamp: payload.timestamp || new Date().toISOString()
           });
         }
 
         if (payload.type === 'ANOMALY_ALARM') {
-          this.anomalyBuffer.push(payload);
-          this.io.emit('anomaly_event', payload);
+          // Normalize payload for frontend before pushing to buffer and emitting
+          const normalized = {
+            machine_id: payload.machine_id,
+            kwh: payload.kwh || 0, // Fallback if kwh not in WS stream
+            recon_error: payload.error || payload.recon_error || 0,
+            threshold: payload.threshold || 0.0979,
+            timestamp: payload.timestamp || new Date().toISOString(),
+            is_anomaly: true,
+            alert: { sent: true },
+            breakdown_simulated: false
+          };
+          
+          this.anomalyBuffer.push(normalized);
+          this.io.emit('anomaly_event', normalized);
         }
       } catch (err) {
         console.error('Error parsing WebSocket message:', err);

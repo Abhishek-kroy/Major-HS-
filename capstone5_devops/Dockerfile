@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY capstone5_devops/requirements.txt .
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+RUN pip install --default-timeout=100 --no-cache-dir --prefix=/install -r requirements.txt
 
 
 # ── Stage 2: Runtime (lean final image) ───────────────────────────
@@ -17,14 +17,16 @@ FROM python:3.10-slim AS runtime
 
 WORKDIR /app
 
+# Install curl for healthchecks
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy installed packages from builder
 COPY --from=builder /install /usr/local
 
-# Copy app source
-COPY capstone5_devops/app/main.py ./main.py
-
-# Copy trained model artifacts (built by Capstone 1)
-COPY models/ ./models/
+# Copy app source (entire app folder)
+COPY capstone5_devops/app/ .
 
 # Copy anomaly log dir (will be volume-mounted in production)
 RUN mkdir -p capstone1_tinyml
@@ -35,7 +37,6 @@ ENV SCALER_PATH=models/scaler.pkl
 ENV THRESH_PATH=models/threshold.txt
 ENV SPIKE_FACTOR=1.5
 ENV LOG_PATH=capstone1_tinyml/anomaly_log.csv
-# Set ALERT_WEBHOOK_URL at runtime: docker run -e ALERT_WEBHOOK_URL=https://...
 
 EXPOSE 8000
 

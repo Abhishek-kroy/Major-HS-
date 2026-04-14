@@ -63,7 +63,7 @@ def stream_electricity_readings():
     """
     kept = []
     total_read = 0
-    print(f"[INFO] Streaming train.csv in chunks of {CHUNK_SIZE:,} rows…")
+    print(f"[INFO] Streaming train.csv in chunks of {CHUNK_SIZE:,} rows...")
     for i, chunk in enumerate(pd.read_csv(f"{ASHRAE_DIR}/train.csv",
                                            chunksize=CHUNK_SIZE)):
         total_read += len(chunk)
@@ -103,13 +103,13 @@ def engineer_features(df, meta, weather):
 
 
 def print_summary(df):
-    print("\n── Dataset Summary ─────────────────────────────────────")
+    print("\n-- Dataset Summary -------------------------------------")
     print(f"  Shape       : {df.shape}")
     print(f"  Machines    : {sorted(df['machine_id'].unique())}")
-    print(f"  Date range  : {df['timestamp'].min()} → {df['timestamp'].max()}")
-    print(f"  kWh range   : {df['kwh'].min():.2f} – {df['kwh'].max():.2f}")
+    print(f"  Date range  : {df['timestamp'].min()} -> {df['timestamp'].max()}")
+    print(f"  kWh range   : {df['kwh'].min():.2f} - {df['kwh'].max():.2f}")
     print(f"  Null kWh    : {df['kwh'].isnull().sum()}")
-    print("────────────────────────────────────────────────────────\n")
+    print("--------------------------------------------------------\n")
 
 
 def main():

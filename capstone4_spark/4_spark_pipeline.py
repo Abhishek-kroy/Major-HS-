@@ -60,13 +60,13 @@ SYNTH_CSV   = os.path.join(PROJECT_ROOT, "data", "processed", "synthetic_energy.
 # ═══════════════════════════════════════════════════════════════════
 
 def banner(title: str):
-    print(f"\n{'═' * 62}")
+    print(f"\n{'=' * 62}")
     print(f"  {title}")
-    print(f"{'═' * 62}")
+    print(f"{'=' * 62}")
 
 
 def section(title: str):
-    print(f"\n── {title} {'─' * (54 - len(title))}")
+    print(f"\n-- {title} {'-' * (54 - len(title))}")
 
 
 def check_java():
@@ -475,7 +475,7 @@ def main():
     spike_count   = df.filter(F.col("spike_flag")  == 1).count()
     drop_count    = df.filter(F.col("drop_flag")   == 1).count()
     z_count       = df.filter(F.col("zscore_flag") == 1).count()
-    print(f"[OK] Anomalies → total: {anomaly_count}  "
+    print(f"[OK] Anomalies -> total: {anomaly_count}  "
           f"(spike: {spike_count}, drop: {drop_count}, z-score: {z_count})")
 
     # Sample anomalies
@@ -529,7 +529,7 @@ def main():
         for feat, imp in sorted(
             zip(FEATURE_COLS, importances), key=lambda x: -x[1]
         ):
-            bar = "█" * int(imp * 40)
+            bar = "#" * int(imp * 40)
             print(f"    {feat:<25} {imp:.4f} {bar}")
 
         # Save predictions with anomaly context
@@ -553,14 +553,14 @@ def main():
 
     # ── Final Summary ─────────────────────────────────────────────
     elapsed = time.time() - t0
-    print("\n╔══════════════════════════════════════════════════════╗")
-    print("║         CAPSTONE 4 — SPARK PIPELINE COMPLETE        ║")
-    print("╠══════════════════════════════════════════════════════╣")
-    print(f"║  Rows processed   : {n_rows:<32} ║")
-    print(f"║  Anomalies found  : {anomaly_count:<32} ║")
-    print(f"║  Output directory : {OUT_DIR:<32} ║")
-    print(f"║  Total runtime    : {elapsed:.1f}s{'':<29} ║")
-    print("╚══════════════════════════════════════════════════════╝")
+    print("\n+------------------------------------------------------+")
+    print("|         CAPSTONE 4 - SPARK PIPELINE COMPLETE        |")
+    print("+------------------------------------------------------+")
+    print(f"|  Rows processed   : {n_rows:<32} |")
+    print(f"|  Anomalies found  : {anomaly_count:<32} |")
+    print(f"|  Output directory : {OUT_DIR:<32} |")
+    print(f"|  Total runtime    : {elapsed:.1f}s{'':<29} |")
+    print("+------------------------------------------------------+")
 
     spark.stop()
     print("[OK] Spark session closed.")

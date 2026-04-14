@@ -37,7 +37,15 @@ from typing import List, Optional
 
 import numpy as np
 import joblib
-import tensorflow as tf
+try:
+    import tflite_runtime.interpreter as tflite
+except ImportError:
+    try:
+        import tensorflow.lite as tflite
+    except ImportError:
+        import tensorflow as tf
+        tflite = tf.lite
+
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, validator
@@ -174,7 +182,7 @@ async def generate_audit_report():
 
 class ModelAssets:
     """Holds all inference assets as a singleton."""
-    interpreter: tf.lite.Interpreter = None
+    interpreter: tflite.Interpreter = None
     inp_det: list  = None
     out_det: list  = None
     scaler         = None
@@ -188,14 +196,14 @@ class ModelAssets:
                 f"TFLite model not found: {TFLITE_PATH}\n"
                 "Run capstone1_tinyml/1_tinyml_pipeline.py first."
             )
-        log.info(f"Loading TFLite model from {TFLITE_PATH} …")
+        log.info(f"Loading TFLite model from {TFLITE_PATH} ...")
         try:
-            cls.interpreter = tf.lite.Interpreter(
+            cls.interpreter = tflite.Interpreter(
                 model_path=TFLITE_PATH,
-                experimental_delegates=[tf.lite.load_delegate('tf_ops')]
+                experimental_delegates=[tflite.load_delegate('tf_ops')]
             )
         except Exception:
-            cls.interpreter = tf.lite.Interpreter(model_path=TFLITE_PATH)
+            cls.interpreter = tflite.Interpreter(model_path=TFLITE_PATH)
             
         cls.interpreter.allocate_tensors()
         cls.inp_det = cls.interpreter.get_input_details()

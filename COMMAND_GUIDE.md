@@ -24,7 +24,7 @@ docker-compose down
 
 ---
 
-## 🛠️ Option 2: Manual Execution (Local Development)
+## 🛠️ Option 2: Manual Execution (Local Development) 
 
 If you need to run services individually for debugging.
 
